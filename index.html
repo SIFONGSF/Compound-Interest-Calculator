@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Compound Interest Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box;}
+        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.2s;}
+        button:hover { background-color: #218838; }
+        
+        .chart-container { margin-top: 30px; position: relative; height: 300px; width: 100%; }
+        
+        /* New styling for the total result */
+        #final-amount { text-align: center; font-size: 1.5em; font-weight: bold; margin-top: 20px; color: #28a745; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📈 Wealth Growth Calculator</h2>
+
+    <div class="input-group">
+        <label>Initial Investment ($)</label>
+        <input type="number" id="principal" value="5000">
+    </div>
+
+    <div class="input-group">
+        <label>Monthly Contribution ($)</label>
+        <input type="number" id="monthly" value="500">
+    </div>
+
+    <div class="input-group">
+        <label>Annual Interest Rate (%)</label>
+        <input type="number" id="rate" value="7">
+    </div>
+
+    <div class="input-group">
+        <label>Time Period (Years)</label>
+        <input type="number" id="years" value="20">
+    </div>
+
+    <button onclick="calculateAndDraw()">Calculate Growth</button>
+
+    <div id="final-amount"></div>
+
+    <div class="chart-container">
+        <canvas id="growthChart"></canvas>
+    </div>
+</div>
+
+<script>
+    let myChart = null;
+
+    function calculateAndDraw() {
+        // 1. Get User Inputs
+        const initial = parseFloat(document.getElementById('principal').value);
+        const monthly = parseFloat(document.getElementById('monthly').value);
+        const rate = parseFloat(document.getElementById('rate').value) / 100;
+        const years = parseInt(document.getElementById('years').value);
+
+        // 2. The Logic (Iterating month-by-month)
+        const labels = [];
+        const dataPoints = [];
+        
+        let currentBalance = initial;
+        
+        // We calculate interest monthly (Rate / 12)
+        const monthlyRate = rate / 12; 
+
+        // Initial Data Point (Year 0)
+        labels.push("Start");
+        dataPoints.push(initial);
+
+        // Loop through every single year
+        for (let year = 1; year <= years; year++) {
+            
+            // Inside each year, loop through 12 months
+            for (let month = 1; month <= 12; month++) {
+                // Add the contribution
+                currentBalance = currentBalance + monthly;
+                // Add the interest
+                currentBalance = currentBalance * (1 + monthlyRate);
+            }
+
+            // After 12 months, save the data for the chart
+            labels.push("Year " + year);
+            dataPoints.push(currentBalance.toFixed(2));
+        }
+
+        // Display the final number in big text
+        document.getElementById('final-amount').innerText = "Total: $" + parseFloat(dataPoints[dataPoints.length - 1]).toLocaleString();
+
+        // 3. Draw the Chart
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: dataPoints,
+                    borderColor: '#28a745', // Changed to Green (Money color)
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '$' + value; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
