@@ -1,119 +1,381 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Global Wealth Calculator</title>
+    <meta charset="UTF-8">
+    <title>Compound Interest Calculator | Free Financial Tool</title>
+    <meta name="description" content="Calculate your investment growth with our free Compound Interest Calculator. Features multi-currency support, inflation adjustment, and Excel export.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background-color: #f0f2f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1a1a1a; margin-bottom: 25px; }
+        /* --- CSS VARIABLES (THEMING) --- */
+        :root {
+            --bg-color: #f8f9fa;
+            --container-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #ffffff;
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --card-bg: #f8faff;
+            --chart-grid: #f3f4f6;
+            --chart-text: #6b7280;
+            --shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #111827;
+            --container-bg: #1f2937;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --input-bg: #374151;
+            --primary-color: #3b82f6;
+            --primary-hover: #60a5fa;
+            --card-bg: #1f2937;
+            --chart-grid: #374151;
+            --chart-text: #9ca3af;
+            --shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container { 
+            max-width: 700px; 
+            margin: 0 auto; 
+            background: var(--container-bg); 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: var(--shadow); 
+        }
+
+        /* HEADER & CONTROLS */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         
-        .row { display: flex; gap: 15px; margin-bottom: 15px; }
+        h2 { margin: 0; font-weight: 800; letter-spacing: -0.5px; }
+
+        .controls { display: flex; gap: 10px; align-items: center; }
+
+        select.lang-select {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: var(--text-main);
+        }
+        .theme-toggle:hover { background-color: var(--border-color); }
+
+        /* INPUTS */
+        .row { display: flex; gap: 20px; margin-bottom: 20px; }
         .col { flex: 1; }
         
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; background-color: #fff; }
-        input:focus, select:focus { border-color: #007bff; outline: none; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
         
-        button { width: 100%; padding: 14px; background-color: #0056b3; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.2s; margin-top: 10px;}
-        button:hover { background-color: #004494; }
+        input, select:not(.lang-select) { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            background-color: var(--input-bg); 
+            color: var(--text-main); 
+        }
+        input:focus, select:focus { border-color: var(--primary-color); outline: none; }
         
-        .chart-container { margin-top: 30px; position: relative; height: 350px; width: 100%; }
-        #final-amount { text-align: center; font-size: 1.8em; font-weight: 800; margin-top: 25px; color: #0056b3; }
-        #final-label { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 5px; }
+        /* ACTION BUTTONS */
+        .btn-calc { 
+            width: 100%; 
+            padding: 16px; 
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 700; 
+            margin-top: 10px; 
+            transition: background 0.2s;
+        }
+        .btn-calc:hover { background-color: var(--primary-hover); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-download { 
+            flex: 1; 
+            padding: 12px; 
+            background-color: var(--bg-color); 
+            color: var(--text-muted); 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600; 
+            transition: all 0.2s; 
+        }
+        .btn-download:hover { background-color: var(--border-color); color: var(--text-main); }
+        
+        /* SUMMARY CARDS */
+        .summary-grid { display: flex; gap: 15px; margin-bottom: 30px; margin-top: 20px; }
+        .summary-card { 
+            flex: 1; 
+            background: var(--card-bg); 
+            padding: 15px; 
+            border-radius: 10px; 
+            text-align: center; 
+            border: 1px solid var(--border-color); 
+        }
+        .summary-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; margin-bottom: 5px; text-transform: uppercase; }
+        .summary-value { font-size: 1.3rem; font-weight: 800; color: var(--text-main); }
+        .summary-value.highlight { color: var(--primary-color); }
+        .summary-value.green { color: #10b981; }
+
+        .chart-container { position: relative; height: 350px; width: 100%; margin-top: 20px; }
+        
+        .footer { text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.8rem; }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 600px) {
+            .row, .summary-grid, .btn-group { flex-direction: column; }
+            .col { margin-bottom: 15px; }
+            .container { padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🌍 Smart Wealth Calculator</h2>
+    <div class="header-row">
+        <h2 id="txt-title">Compound Interest Calculator</h2>
+        <div class="controls">
+            <select id="lang-select" onchange="changeLanguage()" class="lang-select">
+                <option value="en">🇬🇧 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="zh">🇨🇳 简体中文</option>
+                <option value="hi">🇮🇳 हिन्दी</option>
+                <option value="ar">🇸🇦 العربية</option>
+            </select>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">🌙</button>
+        </div>
+    </div>
 
     <div class="row">
         <div class="col">
-            <label>Currency</label>
+            <label id="lbl-currency">Currency</label>
             <select id="currency-select" onchange="updateSymbol()">
+                <option value="$" selected>USD ($)</option>
                 <option value="£">GBP (£)</option>
-                <option value="$">USD ($)</option>
                 <option value="€">EUR (€)</option>
                 <option value="¥">JPY (¥)</option>
+                <option value="MOP$">MOP$</option>
             </select>
         </div>
         <div class="col">
-            <label>Initial Deposit (<span class="curr-symbol">£</span>)</label>
+            <label><span id="lbl-principal">Initial Deposit</span> (<span class="curr-symbol">$</span>)</label>
             <input type="number" id="principal" value="1000">
         </div>
     </div>
 
     <div class="row">
         <div class="col">
-            <label>Frequency</label>
+            <label id="lbl-frequency">Frequency</label>
             <select id="frequency">
-                <option value="52">Weekly</option>
-                <option value="12" selected>Monthly</option>
-                <option value="1">Annually</option>
+                <option value="52" id="opt-week">Weekly</option>
+                <option value="12" selected id="opt-month">Monthly</option>
+                <option value="1" id="opt-year">Annually</option>
             </select>
         </div>
         <div class="col">
-            <label>Contribution (<span class="curr-symbol">£</span>)</label>
+            <label><span id="lbl-contribution">Contribution</span> (<span class="curr-symbol">$</span>)</label>
             <input type="number" id="contribution" value="200">
         </div>
     </div>
 
     <div class="row">
         <div class="col">
-            <label>Interest Rate (%)</label>
+            <label><span id="lbl-rate">Interest Rate</span> (%)</label>
             <input type="number" id="rate" value="7">
         </div>
         <div class="col">
-            <label>Years to Grow</label>
+            <label id="lbl-years">Years to Grow</label>
             <input type="number" id="years" value="10">
         </div>
     </div>
 
-    <button onclick="calculateAndDraw()">Calculate My Wealth</button>
+    <button class="btn-calc" onclick="calculateAndDraw()" id="btn-calculate">Calculate Growth</button>
 
-    <div id="final-label">Future Value</div>
-    <div id="final-amount">£0.00</div>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label" id="lbl-total-invested">Total Invested</div>
+            <div class="summary-value" id="val-invested">$0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label" id="lbl-interest-earned">Interest Earned</div>
+            <div class="summary-value green" id="val-interest">$0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label" id="lbl-total-value">Total Value</div>
+            <div class="summary-value highlight" id="val-total">$0</div>
+        </div>
+    </div>
 
     <div class="chart-container">
         <canvas id="growthChart"></canvas>
     </div>
+    
+    <div class="btn-group">
+        <button class="btn-download" onclick="downloadCSV()" id="btn-csv">Download CSV Report</button>
+        <button class="btn-download" onclick="downloadChart()" id="btn-img">Download Graph Image</button>
+    </div>
+
+</div>
+
+<div class="footer">
+    &copy; <span id="copyright-year"></span> <span id="footer-brand">Compound Interest Calculator</span>. All rights reserved.
 </div>
 
 <script>
     let myChart = null;
+    let isDarkMode = false;
+    
+    // --- DICTIONARY ---
+    const translations = {
+        en: {
+            title: "Compound Interest Calculator", currency: "Currency", principal: "Initial Deposit", frequency: "Frequency", contribution: "Contribution", rate: "Interest Rate", years: "Years to Grow", calculate: "Calculate Growth", invested: "Total Invested", interest: "Interest Earned", total: "Total Value", csv: "Download CSV Report", img: "Download Graph Image", week: "Weekly", month: "Monthly", year: "Annually", chartLabel1: "Total Value", chartLabel2: "Principal Invested", chartYear: "Year", brand: "Compound Interest Calculator"
+        },
+        es: {
+            title: "Calculadora de Interés Compuesto", currency: "Moneda", principal: "Depósito Inicial", frequency: "Frecuencia", contribution: "Contribución", rate: "Tasa de Interés", years: "Años a Crecer", calculate: "Calcular Crecimiento", invested: "Total Invertido", interest: "Interés Ganado", total: "Valor Total", csv: "Descargar CSV", img: "Descargar Imagen", week: "Semanal", month: "Mensual", year: "Anual", chartLabel1: "Valor Total", chartLabel2: "Capital Invertido", chartYear: "Año", brand: "Calculadora de Interés Compuesto"
+        },
+        fr: {
+            title: "Calculatrice d'Intérêts Composés", currency: "Devise", principal: "Dépôt Initial", frequency: "Fréquence", contribution: "Contribution", rate: "Taux d'Intérêt", years: "Durée (Années)", calculate: "Calculer", invested: "Total Investi", interest: "Intérêts Gagnés", total: "Valeur Totale", csv: "Télécharger CSV", img: "Télécharger Image", week: "Hebdomadaire", month: "Mensuel", year: "Annuel", chartLabel1: "Valeur Totale", chartLabel2: "Capital Investi", chartYear: "Année", brand: "Calculatrice d'Intérêts Composés"
+        },
+        de: {
+            title: "Zinseszinsrechner", currency: "Währung", principal: "Startkapital", frequency: "Häufigkeit", contribution: "Sparrate", rate: "Zinssatz", years: "Laufzeit (Jahre)", calculate: "Berechnen", invested: "Investiertes Kapital", interest: "Gewonnene Zinsen", total: "Gesamtwert", csv: "CSV Herunterladen", img: "Bild Herunterladen", week: "Wöchentlich", month: "Monatlich", year: "Jährlich", chartLabel1: "Gesamtwert", chartLabel2: "Investiertes Kapital", chartYear: "Jahr", brand: "Zinseszinsrechner"
+        },
+        ru: {
+            title: "Калькулятор Сложного Процента", currency: "Валюта", principal: "Начальный Депозит", frequency: "Частота", contribution: "Взнос", rate: "Процентная Ставка", years: "Срок (Лет)", calculate: "Рассчитать", invested: "Всего Вложено", interest: "Заработано Процентов", total: "Итоговая Сумма", csv: "Скачать CSV", img: "Скачать График", week: "Еженедельно", month: "Ежемесячно", year: "Ежегодно", chartLabel1: "Итоговая Сумма", chartLabel2: "Вложенный Капитал", chartYear: "Год", brand: "Калькулятор Сложного Процента"
+        },
+        zh: {
+            title: "复利计算器", currency: "货币", principal: "初始存款", frequency: "频率", contribution: "定期供款", rate: "年利率", years: "投资年期", calculate: "计算增长", invested: "总投资额", interest: "赚取利息", total: "总价值", csv: "下载 CSV 报告", img: "下载图表", week: "每周", month: "每月", year: "每年", chartLabel1: "总价值", chartLabel2: "本金投入", chartYear: "年", brand: "复利计算器"
+        },
+        hi: {
+            title: "चक्रवृद्धि ब्याज कैलकुलेटर", currency: "मुद्रा", principal: "प्रारंभिक जमा", frequency: "आवृत्ति", contribution: "योगदान", rate: "ब्याज दर", years: "अवधि (वर्ष)", calculate: "गणना करें", invested: "कुल निवेश", interest: "अर्जित ब्याज", total: "कुल मूल्य", csv: "CSV डाउनलोड करें", img: "ग्राफ डाउनलोड करें", week: "साप्ताहिक", month: "मासिक", year: "वार्षिक", chartLabel1: "कुल मूल्य", chartLabel2: "निवेश मूलधन", chartYear: "वर्ष", brand: "चक्रवृद्धि ब्याज कैलकुलेटर"
+        },
+        ar: {
+            title: "حاسبة الفائدة المركبة", currency: "العملة", principal: "الوديعة الأولية", frequency: "التكرار", contribution: "مبلغ المساهمة", rate: "سعر الفائدة", years: "المدة (سنوات)", calculate: "احسب النمو", invested: "إجمالي المستثمر", interest: "الفائدة المكتسبة", total: "القيمة الإجمالية", csv: "تحميل تقرير CSV", img: "تحميل صورة الرسم البياني", week: "أسبوعي", month: "شهري", year: "سنوي", chartLabel1: "القيمة الإجمالية", chartLabel2: "رأس المال المستثمر", chartYear: "سنة", brand: "حاسبة الفائدة المركبة"
+        }
+    };
 
     window.onload = function() {
+        document.getElementById('copyright-year').innerText = new Date().getFullYear();
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-btn').innerText = '☀️';
+            isDarkMode = true;
+        }
         updateSymbol();
         calculateAndDraw();
     };
 
-    function updateSymbol() {
-        const symbol = document.getElementById('currency-select').value;
-        const spans = document.getElementsByClassName('curr-symbol');
-        for(let span of spans) {
-            span.innerText = symbol;
+    function changeLanguage() {
+        const lang = document.getElementById('lang-select').value;
+        const t = translations[lang];
+
+        if (lang === 'ar') {
+            document.documentElement.setAttribute('dir', 'rtl');
+            document.body.style.textAlign = 'right';
+        } else {
+            document.documentElement.setAttribute('dir', 'ltr');
+            document.body.style.textAlign = 'left';
+        }
+
+        document.getElementById('txt-title').innerText = t.title;
+        document.getElementById('lbl-currency').innerText = t.currency;
+        document.getElementById('lbl-principal').innerText = t.principal;
+        document.getElementById('lbl-frequency').innerText = t.frequency;
+        document.getElementById('lbl-contribution').innerText = t.contribution;
+        document.getElementById('lbl-rate').innerText = t.rate;
+        document.getElementById('lbl-years').innerText = t.years;
+        document.getElementById('btn-calculate').innerText = t.calculate;
+        document.getElementById('lbl-total-invested').innerText = t.invested;
+        document.getElementById('lbl-interest-earned').innerText = t.interest;
+        document.getElementById('lbl-total-value').innerText = t.total;
+        document.getElementById('btn-csv').innerText = t.csv;
+        document.getElementById('btn-img').innerText = t.img;
+        document.getElementById('opt-week').innerText = t.week;
+        document.getElementById('opt-month').innerText = t.month;
+        document.getElementById('opt-year').innerText = t.year;
+        document.getElementById('footer-brand').innerText = t.brand;
+        calculateAndDraw();
+    }
+
+    function toggleTheme() {
+        const btn = document.getElementById('theme-btn');
+        const html = document.documentElement;
+        if (html.getAttribute('data-theme') === 'dark') {
+            html.removeAttribute('data-theme');
+            btn.innerText = '🌙';
+            localStorage.setItem('theme', 'light');
+            isDarkMode = false;
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            btn.innerText = '☀️';
+            localStorage.setItem('theme', 'dark');
+            isDarkMode = true;
         }
         calculateAndDraw();
     }
 
-    // --- NEW HELPER FUNCTION: Formatting Numbers ---
+    function updateSymbol() {
+        const symbol = document.getElementById('currency-select').value;
+        const spans = document.getElementsByClassName('curr-symbol');
+        for(let span of spans) { span.innerText = symbol; }
+        calculateAndDraw();
+    }
+
     function formatMoney(value) {
-        if (value >= 1000000000000) {
-            return (value / 1000000000000).toFixed(1) + 'T'; // Trillions
-        } else if (value >= 1000000000) {
-            return (value / 1000000000).toFixed(1) + 'B'; // Billions
-        } else if (value >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M'; // Millions
-        } else if (value >= 1000) {
-            return (value / 1000).toFixed(1) + 'k'; // Thousands
-        } else {
-            return value.toFixed(0); // Small numbers
-        }
+        if (value >= 1000000000000) return (value / 1000000000000).toFixed(1) + 'T';
+        if (value >= 1000000000) return (value / 1000000000).toFixed(1) + 'B';
+        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+        return value.toFixed(0);
     }
 
     function calculateAndDraw() {
+        const lang = document.getElementById('lang-select').value;
+        const t = translations[lang];
         const symbol = document.getElementById('currency-select').value;
         const P = parseFloat(document.getElementById('principal').value);
         const c = parseFloat(document.getElementById('contribution').value);
@@ -122,14 +384,17 @@
         const freq = parseInt(document.getElementById('frequency').value);
 
         const labels = [];
-        const dataPoints = [];
+        const dataBalance = [];
+        const dataInvested = [];
         let currentBalance = P;
+        let totalInvested = P;
 
         const ratePerPeriod = r / freq;
         const totalPeriods = years * freq;
 
-        labels.push("Start");
-        dataPoints.push(P);
+        labels.push(t.chartYear + " 0");
+        dataBalance.push(P);
+        dataInvested.push(P);
 
         let periodsPerYearCounter = 0;
         let currentYear = 1;
@@ -137,21 +402,30 @@
         for (let i = 1; i <= totalPeriods; i++) {
             currentBalance += c;
             currentBalance *= (1 + ratePerPeriod);
-
+            totalInvested += c;
             periodsPerYearCounter++;
 
             if (periodsPerYearCounter === freq) {
-                labels.push("Year " + currentYear);
-                dataPoints.push(currentBalance.toFixed(2));
+                const yearLabel = (lang === 'zh') ? t.chartYear + " " + currentYear + " 年" : t.chartYear + " " + currentYear;
+                labels.push(yearLabel);
+                dataBalance.push(currentBalance.toFixed(2));
+                dataInvested.push(totalInvested.toFixed(2));
                 periodsPerYearCounter = 0;
                 currentYear++;
             }
         }
 
-        const finalVal = parseFloat(dataPoints[dataPoints.length - 1]);
-        
-        // --- APPLY FORMATTING TO BIG TOTAL ---
-        document.getElementById('final-amount').innerText = symbol + formatMoney(finalVal);
+        const finalVal = parseFloat(dataBalance[dataBalance.length - 1]);
+        const finalInvested = parseFloat(dataInvested[dataInvested.length - 1]);
+        const totalInterest = finalVal - finalInvested;
+
+        document.getElementById('val-total').innerText = symbol + formatMoney(finalVal);
+        document.getElementById('val-invested').innerText = symbol + formatMoney(finalInvested);
+        document.getElementById('val-interest').innerText = symbol + formatMoney(totalInterest);
+
+        const styles = getComputedStyle(document.body);
+        const gridColor = styles.getPropertyValue('--chart-grid').trim();
+        const textColor = styles.getPropertyValue('--chart-text').trim();
 
         if (myChart) { myChart.destroy(); }
 
@@ -160,42 +434,113 @@
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Total Value',
-                    data: dataPoints,
-                    borderColor: '#0056b3',
-                    backgroundColor: 'rgba(0, 86, 179, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4
-                }]
+                datasets: [
+                    {
+                        label: t.chartLabel1,
+                        data: dataBalance,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: t.chartLabel2,
+                        data: dataInvested,
+                        borderColor: textColor,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
                 plugins: {
                     tooltip: {
-                        callbacks: {
-                            // --- APPLY FORMATTING TO TOOLTIPS (Hover) ---
-                            label: function(context) {
-                                return symbol + formatMoney(context.raw);
-                            }
-                        }
-                    }
+                        callbacks: { label: function(context) { return context.dataset.label + ': ' + symbol + formatMoney(context.raw); } },
+                        backgroundColor: isDarkMode ? '#374151' : 'rgba(255, 255, 255, 0.95)',
+                        titleColor: isDarkMode ? '#fff' : '#111',
+                        bodyColor: isDarkMode ? '#fff' : '#111',
+                        borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
+                        borderWidth: 1,
+                        padding: 10
+                    },
+                    legend: { labels: { color: textColor, usePointStyle: true, font: { weight: '600' } } }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            // --- APPLY FORMATTING TO Y-AXIS (Side numbers) ---
-                            callback: function(value) {
-                                return symbol + formatMoney(value);
-                            }
-                        }
-                    }
+                    y: { beginAtZero: true, ticks: { callback: function(value) { return symbol + formatMoney(value); }, color: textColor }, grid: { color: gridColor } },
+                    x: { ticks: { color: textColor }, grid: { display: false } }
                 }
             }
         });
+    }
+
+    function downloadCSV() {
+        const P = parseFloat(document.getElementById('principal').value);
+        const c = parseFloat(document.getElementById('contribution').value);
+        const r = parseFloat(document.getElementById('rate').value) / 100;
+        const years = parseInt(document.getElementById('years').value);
+        const freq = parseInt(document.getElementById('frequency').value);
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Year,Total Balance,Total Contributed,Total Interest Earned\n";
+
+        let currentBalance = P;
+        let totalContributed = P;
+        const ratePerPeriod = r / freq;
+        const totalPeriods = years * freq;
+        let periodsPerYearCounter = 0;
+        let currentYear = 1;
+
+        csvContent += "0," + P.toFixed(2) + "," + P.toFixed(2) + ",0.00\n";
+
+        for (let i = 1; i <= totalPeriods; i++) {
+            currentBalance += c;
+            currentBalance *= (1 + ratePerPeriod);
+            totalContributed += c;
+            periodsPerYearCounter++;
+
+            if (periodsPerYearCounter === freq) {
+                let totalInterest = currentBalance - totalContributed;
+                csvContent += currentYear + "," + currentBalance.toFixed(2) + "," + totalContributed.toFixed(2) + "," + totalInterest.toFixed(2) + "\n";
+                periodsPerYearCounter = 0;
+                currentYear++;
+            }
+        }
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "wealth_plan.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function downloadChart() {
+        const canvas = document.getElementById('growthChart');
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.fillStyle = isDarkMode ? '#1f2937' : '#FFFFFF';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.drawImage(canvas, 0, 0);
+        const imageLink = tempCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'wealth_chart.png';
+        link.href = imageLink;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 
