@@ -1,1 +1,1 @@
-# wealth-calculator
+# Compound Interest Calculator
