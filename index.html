@@ -8,7 +8,6 @@
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #1a1a1a; margin-bottom: 25px; }
         
-        /* Grid layout for side-by-side inputs */
         .row { display: flex; gap: 15px; margin-bottom: 15px; }
         .col { flex: 1; }
         
@@ -85,72 +84,75 @@
 <script>
     let myChart = null;
 
-    // 1. Initial Setup: Update symbols on load
     window.onload = function() {
         updateSymbol();
-        calculateAndDraw(); // Auto-calculate on open
+        calculateAndDraw();
     };
 
-    // 2. Helper to update £/$ symbols in labels
     function updateSymbol() {
         const symbol = document.getElementById('currency-select').value;
         const spans = document.getElementsByClassName('curr-symbol');
         for(let span of spans) {
             span.innerText = symbol;
         }
-        calculateAndDraw(); // Re-calc when currency changes
+        calculateAndDraw();
+    }
+
+    // --- NEW HELPER FUNCTION: Formatting Numbers ---
+    function formatMoney(value) {
+        if (value >= 1000000000000) {
+            return (value / 1000000000000).toFixed(1) + 'T'; // Trillions
+        } else if (value >= 1000000000) {
+            return (value / 1000000000).toFixed(1) + 'B'; // Billions
+        } else if (value >= 1000000) {
+            return (value / 1000000).toFixed(1) + 'M'; // Millions
+        } else if (value >= 1000) {
+            return (value / 1000).toFixed(1) + 'k'; // Thousands
+        } else {
+            return value.toFixed(0); // Small numbers
+        }
     }
 
     function calculateAndDraw() {
-        // --- Step A: Get User Inputs ---
         const symbol = document.getElementById('currency-select').value;
         const P = parseFloat(document.getElementById('principal').value);
         const c = parseFloat(document.getElementById('contribution').value);
         const r = parseFloat(document.getElementById('rate').value) / 100;
         const years = parseInt(document.getElementById('years').value);
-        const freq = parseInt(document.getElementById('frequency').value); // 12, 52, or 1
+        const freq = parseInt(document.getElementById('frequency').value);
 
-        // --- Step B: The "Universal" Loop ---
         const labels = [];
         const dataPoints = [];
         let currentBalance = P;
 
-        // Rate per period (e.g., if Weekly, divide 7% by 52)
         const ratePerPeriod = r / freq;
         const totalPeriods = years * freq;
 
         labels.push("Start");
         dataPoints.push(P);
 
-        // We only want to plot points ONCE per year to keep the chart clean
-        // even if we calculate weekly.
         let periodsPerYearCounter = 0;
         let currentYear = 1;
 
         for (let i = 1; i <= totalPeriods; i++) {
-            // Add cash
             currentBalance += c;
-            // Add interest
             currentBalance *= (1 + ratePerPeriod);
 
             periodsPerYearCounter++;
 
-            // If we have completed a full year (e.g. 52 weeks), save the data point
             if (periodsPerYearCounter === freq) {
                 labels.push("Year " + currentYear);
                 dataPoints.push(currentBalance.toFixed(2));
-                
-                periodsPerYearCounter = 0; // Reset counter
+                periodsPerYearCounter = 0;
                 currentYear++;
             }
         }
 
-        // --- Step C: Update the Big Number ---
         const finalVal = parseFloat(dataPoints[dataPoints.length - 1]);
-        document.getElementById('final-amount').innerText = 
-            symbol + finalVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        // --- APPLY FORMATTING TO BIG TOTAL ---
+        document.getElementById('final-amount').innerText = symbol + formatMoney(finalVal);
 
-        // --- Step D: Draw Chart ---
         if (myChart) { myChart.destroy(); }
 
         const ctx = document.getElementById('growthChart').getContext('2d');
@@ -165,8 +167,7 @@
                     backgroundColor: 'rgba(0, 86, 179, 0.1)',
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 4
                 }]
             },
             options: {
@@ -175,8 +176,9 @@
                 plugins: {
                     tooltip: {
                         callbacks: {
+                            // --- APPLY FORMATTING TO TOOLTIPS (Hover) ---
                             label: function(context) {
-                                return symbol + parseFloat(context.raw).toLocaleString();
+                                return symbol + formatMoney(context.raw);
                             }
                         }
                     }
@@ -185,7 +187,10 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) { return symbol + value.toLocaleString(); }
+                            // --- APPLY FORMATTING TO Y-AXIS (Side numbers) ---
+                            callback: function(value) {
+                                return symbol + formatMoney(value);
+                            }
                         }
                     }
                 }
